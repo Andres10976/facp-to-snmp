@@ -1,0 +1,76 @@
+FIRE-ALARM-CONTROL-PANEL-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+    MODULE-IDENTITY, OBJECT-TYPE, NOTIFICATION-TYPE,
+    Integer32, enterprises
+        FROM SNMPv2-SMI
+    TEXTUAL-CONVENTION, DisplayString
+        FROM SNMPv2-TC;
+
+fireAlarmControlPanelMIB MODULE-IDENTITY
+    LAST-UPDATED "202308200000Z"
+    ORGANIZATION "Edintel S.A."
+    CONTACT-INFO
+        "Edintel S.A.
+        Contact: 25201212"
+    DESCRIPTION
+        "MIB for Fire Alarm Control Panel monitoring system"
+    ::= { enterprises 4 1 }  -- Using the OID from the config
+
+-- Textual Conventions
+Severity ::= TEXTUAL-CONVENTION
+    STATUS current
+    DESCRIPTION
+        "Severity level of the event:
+        3: Alarm event - A sensor was activated. Severe alarm.
+        2: Notification event - Someone is manipulating the FACP, 
+           a magnetic contact was activated, or other minor events.
+        1: Info event - Alarms were restored or other informational events."
+    SYNTAX INTEGER {
+        info(1),
+        notification(2),
+        alarm(3)
+    }
+
+-- Object Definitions
+facpEvent OBJECT-TYPE
+    SYNTAX DisplayString
+    MAX-ACCESS accessible-for-notify
+    STATUS current
+    DESCRIPTION
+        "The event type from the Fire Alarm Control Panel"
+    ::= { fireAlarmControlPanelMIB 1 }
+
+facpSeverity OBJECT-TYPE
+    SYNTAX Integer32 (1..3)
+    MAX-ACCESS accessible-for-notify
+    STATUS current
+    DESCRIPTION
+        "The severity of the event"
+    ::= { fireAlarmControlPanelMIB 2 }
+
+facpTimestamp OBJECT-TYPE
+    SYNTAX DisplayString
+    MAX-ACCESS accessible-for-notify
+    STATUS current
+    DESCRIPTION
+        "The timestamp of the event"
+    ::= { fireAlarmControlPanelMIB 3 }
+
+facpDescription OBJECT-TYPE
+    SYNTAX DisplayString
+    MAX-ACCESS accessible-for-notify
+    STATUS current
+    DESCRIPTION
+        "Detailed description of the event"
+    ::= { fireAlarmControlPanelMIB 4 }
+
+-- Inform Definition
+facpInform NOTIFICATION-TYPE
+    OBJECTS { facpEvent, facpSeverity, facpTimestamp, facpDescription }
+    STATUS current
+    DESCRIPTION
+        "This inform is sent when an event occurs in the Fire Alarm Control Panel"
+    ::= { fireAlarmControlPanelMIB 0 1 }
+
+END
