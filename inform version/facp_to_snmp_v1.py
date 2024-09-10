@@ -5,35 +5,33 @@ import serial
 import time
 
 MAX_RETRIES = 3
-BASE_DELAY = 1  # second
+BASE_DELAY = 30  # second
 
 class SNMPManager:
     def __init__(self, config):
         self.config = config
         self.engine = SnmpEngine()
         self.community = CommunityData(self.config['snmp']['community'])
-        self.target = UdpTransportTarget((self.config['snmp']['trap_destination'], self.config['snmp']['trap_port']))
+        self.target = UdpTransportTarget((self.config['snmp']['inform_destination'], self.config['snmp']['inform_port']))
         self.context = ContextData()
 
     def send_inform(self, event, severity, timestamp, description):
         retries = 0
         while retries < MAX_RETRIES:
             try:
-                error_indication, error_status, error_index, var_binds = next(
-                    sendNotification(
-                        self.engine,
-                        self.community,
-                        self.target,
-                        self.context,
-                        'inform',
-                        NotificationType(
-                            ObjectIdentity(self.config['oids']['trap'])
-                        ).addVarBinds(
-                            (self.config['oids']['event'], OctetString(event.encode('latin-1'))),
-                            (self.config['oids']['severity'], Integer(severity)),
-                            (self.config['oids']['timestamp'], OctetString(timestamp.encode('latin-1'))),
-                            (self.config['oids']['description'], OctetString(description.encode('latin-1')))
-                        )
+                error_indication, error_status, error_index, var_binds = sendNotification(
+                    self.engine,
+                    self.community,
+                    self.target,
+                    self.context,
+                    'inform',
+                    NotificationType(
+                        ObjectIdentity(self.config['oids']['inform'])
+                    ).addVarBinds(
+                        (ObjectIdentity(self.config['oids']['event']), OctetString(event.encode('latin-1'))),
+                        (ObjectIdentity(self.config['oids']['severity']), Integer(severity)),
+                        (ObjectIdentity(self.config['oids']['datetime']), OctetString(timestamp.encode('latin-1'))),
+                        (ObjectIdentity(self.config['oids']['description']), OctetString(description.encode('latin-1')))
                     )
                 )
 
@@ -45,7 +43,7 @@ class SNMPManager:
                 logging.info(f"SNMP Inform sent: {event}")
                 return  # Success, exit the function
             except Exception as e:
-                logging.error(f"Error sending SNMP Inform (attempt {retries + 1}): {e}")
+                logging.exception(f"Error sending SNMP Inform (attempt {retries + 1}): {e}")
                 retries += 1
                 if retries < MAX_RETRIES:
                     time.sleep(BASE_DELAY * (2 ** retries))  # Exponential backoff

@@ -1,0 +1,75 @@
+snmp:
+  community: 'public'
+  inform_destination: '192.168.0.72'
+  inform_port: 162
+
+serial:
+  port: 'COM4'
+  baudrate: 9600
+  timeout: 1
+
+oids:
+  inform: '1.3.6.1.3.999.1.0.1'
+  event: '1.3.6.1.3.999.1.0.1.1'
+  severity: '1.3.6.1.3.999.1.0.1.2'
+  datetime: '1.3.6.1.3.999.1.0.1.3'
+  description: '1.3.6.1.3.999.1.0.1.4'
+
+event_severities:
+  HUMO ACT: 3
+  CALOR ACT: 3
+  DUCTO ACT: 3
+  EST MAN ACT: 3
+  FLUJ ACT: 3
+  COAL ACT: 3
+  ALRM ACT: 3
+  Est.Manu: 3
+  ACT ALRM: 3
+  COSU ACT: 2
+  SUPV ACT: 2
+  COMO ACT: 2
+  MON ACT: 2
+  Salidas bloqueadas: 2
+  PALM ACT: 2
+  ALMV ACT: 2
+  MANT ACT: 2
+  FALL ACT: 1
+  DESH ACT: 1
+  PRBA ACT: 1
+  SMK ACT: 3
+  HEAT ACT: 3
+  DUCT ACT: 3
+  PULL ACT: 3
+  WFLW ACT: 3
+  PROB ACT: 2
+  Outputs are latched: 2
+  TRBL ACT: 1
+  DSBL ACT: 1
+  TEST ACT: 1
+  HUMO RST: 1
+  CALOR RST: 1
+  DUCTO RST: 1
+  EST MAN RST: 1
+  FLUJ RST: 1
+  COAL RST: 1
+  ALRM RST: 1
+  COSU RST: 1
+  SUPV RST: 1
+  COMO RST: 1
+  MON RST: 1
+  PALM RST: 1
+  ALMV RST: 1
+  MANT RST: 1
+  FALL RST: 1
+  DESH RST: 1
+  PRBA RST: 1
+  SMK RST: 1
+  HEAT RST: 1
+  DUCT RST: 1
+  PULL RST: 1
+  WFLW RST: 1
+  PROB RST: 1
+  TRBL RST: 1
+  DSBL RST: 1
+  TEST RST: 1
+  RST ALRM: 1
