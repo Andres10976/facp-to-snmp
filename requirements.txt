@@ -1,3 +1,4 @@
 pyyaml
 pysnmp
 pyserial
+pyserial-asyncio

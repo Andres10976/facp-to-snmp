@@ -8,7 +8,7 @@ import sys
 snmpEngine = engine.SnmpEngine()
 
 # IP configuration
-ip = '192.168.0.72'
+ip = '192.168.84.31'
 
 # Configure transport
 config.addTransport(
