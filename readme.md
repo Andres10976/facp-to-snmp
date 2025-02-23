@@ -20,7 +20,6 @@ The project is organized into two main versions:
 
 ### Inform Version
 
-- `facp_to_snmp_v1.py`: Synchronous implementation using SNMP INFORM
 - `facp_to_snmp_v2.py`: Asynchronous implementation using SNMP INFORM
 - `FIRE-ALARM-CONTROL-PANEL-MIB.mib`: Custom MIB for INFORM notifications
 - `snmp_receiver_test.py`: Test script for receiving SNMP INFORM notifications
@@ -61,11 +60,13 @@ pip install -r requirements.txt
 2. Run the desired version of the script:
 
    For Inform version:
+
    ```
    python facp_to_snmp_v2.py
    ```
 
    For Trap version:
+
    ```
    python facp_to_snmp.py
    ```
@@ -73,11 +74,13 @@ pip install -r requirements.txt
 3. To test the SNMP receiver, run the appropriate receiver script:
 
    For Inform version:
+
    ```
    python snmp_receiver_test.py
    ```
 
    For Trap version:
+
    ```
    python trap_receiver.py
    ```
