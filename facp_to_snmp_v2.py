@@ -1,12 +1,13 @@
 import yaml
 import logging
 import asyncio
-from pysnmp.hlapi.asyncio import *
-import serial_asyncio
-import serial
+from pysnmp.hlapi.v3arch.asyncio import *
 from typing import Dict, Any
 from asyncio import PriorityQueue
 import time
+import os
+import serial
+import serial_asyncio
 
 BASE_DELAY = 30  # seconds
 
@@ -15,11 +16,22 @@ class SNMPManager:
         self.config = config
         self.queue = queue
         self.engine = SnmpEngine()
-        self.community = CommunityData(self.config['snmp']['community'])
-        self.target = UdpTransportTarget((self.config['snmp']['inform_destination'], self.config['snmp']['inform_port']))
+        self.community = CommunityData(
+            self.config['snmp']['community'], 
+            mpModel=1
+        )
+        self.target = None
         self.context = ContextData()
+        
+    async def initialize(self):
+        """Initialize the UDP transport target asynchronously"""
+        self.target = await UdpTransportTarget.create(
+            (self.config['snmp']['inform_destination'], 
+             self.config['snmp']['inform_port'])
+        )
 
     async def run(self):
+        await self.initialize()
         while True:
             priority, timestamp, message = await self.queue.get()
             await self.send_inform(**message)
@@ -27,36 +39,57 @@ class SNMPManager:
 
     async def send_inform(self, event: str, severity: int, timestamp: str, description: str):
         try:
-            error_indication, error_status, error_index, var_binds = await sendNotification(
+            notification = NotificationType(
+                ObjectIdentity(self.config['oids']['inform'])
+            ).add_varbinds(
+                (ObjectIdentity(self.config['oids']['event']), 
+                 OctetString(event.encode('latin-1'))),
+                (ObjectIdentity(self.config['oids']['severity']), 
+                 Integer32(severity)),
+                (ObjectIdentity(self.config['oids']['datetime']), 
+                 OctetString(timestamp.encode('latin-1'))),
+                (ObjectIdentity(self.config['oids']['description']), 
+                 OctetString(description.encode('latin-1')))
+            )
+
+            error_indication, error_status, error_index, var_binds = await send_notification(
                 self.engine,
                 self.community,
                 self.target,
                 self.context,
                 'inform',
-                NotificationType(
-                    ObjectIdentity(self.config['oids']['inform'])
-                ).addVarBinds(
-                    (ObjectIdentity(self.config['oids']['event']), OctetString(event.encode('latin-1'))),
-                    (ObjectIdentity(self.config['oids']['severity']), Integer(severity)),
-                    (ObjectIdentity(self.config['oids']['datetime']), OctetString(timestamp.encode('latin-1'))),
-                    (ObjectIdentity(self.config['oids']['description']), OctetString(description.encode('latin-1')))
-                )
+                notification
             )
 
             if error_indication:
                 raise Exception(f"SNMP Inform failed: {error_indication}")
             if error_status:
-                raise Exception(f"SNMP Inform failed: {error_status.prettyPrint()} at {error_index and var_binds[int(error_index) - 1][0] or '?'}")
+                raise Exception(
+                    f"SNMP Inform failed: {error_status.prettyPrint()} at "
+                    f"{error_index and var_binds[int(error_index) - 1][0] or '?'}"
+                )
             
             logging.info(f"SNMP Inform sent: {event}")
-            return  # Success, exit the function
+            return
+
         except Exception as e:
             logging.error(f"Error sending SNMP Inform: {e}")
-        
-        logging.error(f"Failed to send SNMP Inform. Requeuing message at the front. Waiting {BASE_DELAY} seconds before retrying.")
-        await asyncio.sleep(BASE_DELAY)
-        # Requeue the message at the front of the queue
-        await self.queue.put((0, time.time(), {'event': event, 'severity': severity, 'timestamp': timestamp, 'description': description}))
+            logging.error(
+                f"Failed to send SNMP Inform. Requeuing message at the front. "
+                f"Waiting {BASE_DELAY} seconds before retrying."
+            )
+            await asyncio.sleep(BASE_DELAY)
+            # Requeue the message at the front of the queue
+            await self.queue.put((0, time.time(), {
+                'event': event,
+                'severity': severity,
+                'timestamp': timestamp,
+                'description': description
+            }))
+
+    async def cleanup(self):
+        """Cleanup resources"""
+        self.engine.close_dispatcher()
 
 class SerialMonitor:
     def __init__(self, config: Dict[str, Any], queue: PriorityQueue):
@@ -95,7 +128,7 @@ class SerialMonitor:
             await self.writer.wait_closed()
         self.reader = None
         self.writer = None
-        await asyncio.sleep(1)  # Wait a bit before reconnecting
+        await asyncio.sleep(1)
 
     async def process_incoming_data(self):
         buffer = ""
@@ -159,6 +192,9 @@ class SerialMonitor:
             self.writer.close()
 
 def load_config():
+    print(f"Current working directory: {os.getcwd()}")
+    config_path = os.path.join(os.getcwd(), 'config.yml')
+    print(f"Attempting to load config from: {config_path}")
     with open('config.yml', 'r') as f:
         return yaml.safe_load(f)
 
@@ -186,7 +222,8 @@ async def main():
         logging.exception(f"Unexpected error: {e}")
     finally:
         serial_monitor.stop()
-        await event_queue.join()  # Wait for all queued items to be processed
+        await snmp_manager.cleanup()
+        await event_queue.join()
         logging.info("Application shut down complete.")
 
 if __name__ == "__main__":
